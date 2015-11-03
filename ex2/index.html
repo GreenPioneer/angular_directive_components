@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" />
+    <!-- JS -->
+    <script src="https://code.angularjs.org/1.4.5/angular.js"></script>
+    <script src="https://code.angularjs.org/1.4.5/angular-mocks.js"></script>
+    <script src="https://code.angularjs.org/1.4.5/angular-resource.js"></script>
+    <script>
+        var myApp = angular.module('myApp', ['ngResource']);
+        myApp.factory('getJsFiddleData', function ($resource) {
+            return $resource('https://jsfiddle.net/api/user/:username/demo/list.json', {
+                callback: "JSON_CALLBACK",
+                username: "@username"
+            }, {
+                getFiddles: {
+                    method: "JSONP"
+                }
+            });
+        })
+        //provider style, full blown, configurable version     
+        myApp.provider('getJsFiddleInfo', function () {
+
+            var username='default';
+            
+            this.$get = function () {
+                return{
+                    getInfo:function(){
+                        return {
+                        	username:username
+                        }
+                    }
+                }
+            };
+
+            this.setInfo = function (name) {
+                username = name;
+            };
+        });
+
+        //hey, we can configure a provider!            
+        myApp.config(function (getJsFiddleInfoProvider) {
+            getJsFiddleInfoProvider.setInfo('greenpioneer');
+        });
+        myApp.directive('jsfiddleTable', function () {
+            return {
+                scope: true,
+                bindToController: {
+                    // username: '=',
+                    // fiddles:'='
+                },
+                //IDEALLY -  controller: 'FoobarCtrl', For this tutorial im typing it out
+                controller: function (getJsFiddleInfo,getJsFiddleData) {
+                    ctrl = this;
+                    ctrl.info  = getJsFiddleInfo.getInfo();
+                    getJsFiddleData.getFiddles(ctrl.info,function (data) {
+                        ctrl.fiddles = data.list;
+                    });
+                    return ctrl;
+                },
+                transclude: true,
+                controllerAs: 'ctrl',
+                //IDEALLY -  templateUrl: 'foobar.html', For this tutorial im typing it out
+                template: `
+                  <div class="row" >
+                    <div class="text-center"> Check us out on JsFiddle <a ng-href="http://jsfiddle.net/user/{{ctrl.info.username}}/fiddles/"><i class="fa fa-jsfiddle fa-5x"></i></a></div>
+                    <table class="table table-striped" ng-show="ctrl.fiddles">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Created</th>
+                                <th>Description</th>
+                                <th>Latest Version</th>
+                                <th>View</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="(key, value) in ctrl.fiddles">
+                                <th scope="row">{{$index + 1}}</th>
+                                <td>{{value.title}}</td>
+                                <td>{{value.created_at| date:'MM/dd/yyyy'}}</td>
+                                <td>{{value.description}}</td>
+                                <td>{{value.latest_version}}</td>
+                                <td><a ng-href="{{value.url}}{{value.latest_version}}/" target="_blank" class="btn btn-success">View</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                `
+            }
+        });
+    </script>
+</head>
+
+<body ng-app="myApp">
+    <!-- ng-controller="myCtrl as vm" -->
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <jsfiddle-Table ><!-- username="vm.username" -->
+                </jsfiddle-Table>
+            </div>
+            <!-- col -->
+        </div>
+        <!-- row -->
+    </div>
+    <!-- Container -->
+</body>
+
+</html>
